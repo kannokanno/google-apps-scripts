@@ -1,5 +1,5 @@
-function sendHipChat(message) {
-  if (message === "") {
+function sendHipChat(payload) {
+  if (typeof payload === "undefined") {
     return;
   }
   var authToken = ''; // setup
@@ -7,27 +7,33 @@ function sendHipChat(message) {
   var params = {
     "contentType" : "application/x-www-form-urlencoded",
     "method": "post",
-    "payload": {
-      "room_id": ,// setup
-      "from": 'Gmail',
-      "notify": 1,
-      "message": message,
-      "color": 'yellow',
-      "message_format": 'text'
-    },
+    "payload": payload,
   };
   UrlFetchApp.fetch(url, params).getContentText();
 }
 
-function make_notify_message(message) {
-  return message.getTitle();
+function eachMessage(criteria, callback) {
+  GmailApp.search(criteria).forEach(function(thread) {
+    thread.getMessages().forEach(callback);
+  });
+}
+
+function markAndSend(criteria, messageBuilder) {
+  eachMessage(criteria, function(message) {
+    message.markRead();
+    sendHipChat(messageBuilder(message));
+  });
 }
 
 function main() {
-  GmailApp.search('<search for gmail>').forEach(function(thread) {
-    thread.getMessages().forEach(function(message) {
-      message.markRead();
-      sendHipChat(make_notify_message(message));
-    });
+  markAndSend('<search for gmail>', function(message) {
+    return {
+      "room_id": 100, // setup
+      "from": 'Gmail',
+      "notify": 1,
+      "message": message.getTitle(),
+      "color": 'yellow',
+      "message_format": 'text'
+    }
   });
 }
